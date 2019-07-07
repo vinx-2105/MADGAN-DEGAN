@@ -108,6 +108,8 @@ except:
 #Init the Logger defined in Logger.py
 logger = Logger(SAVE_DIR+'/log.txt')
 
+logger.log(str(args))
+
 device = torch.device("cuda:"+str(gpu_add) if (torch.cuda.is_available() and is_gpu > 0) else "cpu")
 print("DEVICE IS {}".format(device))
 ################################
@@ -145,20 +147,24 @@ This section deals with loading the data
 """
 ################################
 #Function which returns the dataloader
-def get_dataloader():
+MEANS = [10, 20, 60, 80 ,110]
+DEVS = [3,3,2,2,1]
+
+logger.log("MEANS IN DS -"+str(MEANS)+"\n")
+logger.log("DEVS IN DS -"+str(DEVS)+"\n")
+
+
+def get_dataloader(means, devs):
     """
     Synthetic Dataset Preparation :- GMM Distribution ( 5 mixture component ) with modes at 10 , 20 , 60 , 80 , 110 and standard deviations : 3, 3, 2, 2 and 1, respectively 
     """
 
-    MEANS = [10, 20, 60, 80 ,110]
-    DEVS = [3,3,2,2,1]
     SAMPLES_FOR_EACH = 200000#Sample two hundred thousand samples from each dist
     train_data=[]
     for i in range(0,len(MEANS)):
         train_data.extend(np.random.normal(MEANS[i],DEVS[i],SAMPLES_FOR_EACH))
 
 
-   
     train_data = torch.Tensor(train_data).view(-1,1)
     print(train_data.size())
 
@@ -166,7 +172,7 @@ def get_dataloader():
     data = data_utils.TensorDataset(train_data)
     dataloader = data_utils.DataLoader(data,batch_size=batch_size,shuffle=True)
 
-    return dataloader
+    return train_data, dataloader
 ################################
 
 
@@ -186,7 +192,7 @@ def weights_init(m):
 Initialize the generator and the discriminator and dataloader
 """
 ##########################################
-dataloader = get_dataloader()
+train_data, dataloader = get_dataloader(MEANS, DEVS)
 
 if is_sharing==0:
     # generator = MNISTUnsharedGenerator(num_generators, n_z,  batch_size).to(device)
@@ -222,6 +228,8 @@ else:
 if not os.path.isdir(SAVE_DIR+'/Results'):
         os.mkdir(SAVE_DIR+'/Results')
         os.mkdir(SAVE_DIR+'/Results/ALL/')
+        os.mkdir(SAVE_DIR+'/Results/COLOR/')
+
 
         for x in range(num_generators):
             os.mkdir(SAVE_DIR+'/Results/G'+str(x)+'/')
@@ -244,7 +252,26 @@ num_batches = len(dataloader)
 
 DEBUG=True
 
-fixed_noise = utils.generate_noise_for_generator(batch_size//num_generators, n_z, device)
+fixed_noise = utils.generate_noise_for_generator(12000, n_z, device)
+
+colors = ['aqua', 'orange', 'fuchsia', 'yellowgreen']
+
+
+"""
+The labels to be used
+"""
+#################################
+real_b_size=batch_size
+D_label_real  = utils.get_labels(num_generators, -1, real_b_size, device)
+D_Label_Fake =[]
+for g in range(num_generators):
+    D_Label_Fake.append(utils.get_labels(num_generators, g, real_b_size//num_generators, device))
+
+D_Label_Fake = torch.cat(D_Label_Fake)
+D_Labels = torch.cat([D_label_real, D_Label_Fake])
+
+G_Labels = utils.get_labels(num_generators, -1, real_b_size,  device)
+##################################
 
 for epoch in range(num_epochs):
     print("Iters: {} Starting Epoch - {}/{}. See log.txt for more details".format(iters, epoch, num_epochs))
@@ -263,7 +290,7 @@ for epoch in range(num_epochs):
             continue
 
         #generate labels for the real batch of data...the (k+1)th element is 1...rest are zero
-        D_label_real  = utils.get_labels(num_generators, -1, real_b_size, device)
+        
 
         #forward pass for the real batch of data and then resize  
         
@@ -277,15 +304,7 @@ for epoch in range(num_epochs):
         if add_noise==1:
             x_noise = norm.sample(gen_out_d_in.size()).view(gen_out_d_in.size()).to(device)
             gen_out_d_in = gen_out_d_in + x_noise 
-        
-        
         #################################################################
-        D_Label_Fake =[]
-        for g in range(num_generators):
-            D_Label_Fake.append(utils.get_labels(num_generators, g, real_b_size//num_generators, device))
-        
-        D_Label_Fake = torch.cat(D_Label_Fake)
-        D_Labels = torch.cat([D_label_real, D_Label_Fake])
 
         if DEBUG: logger.log(str(D_Labels))
         
@@ -320,7 +339,6 @@ for epoch in range(num_epochs):
         else:
             D_Fake_Output_G = discriminator(gen_output).view((real_b_size, -1))
 
-        G_Labels = utils.get_labels(num_generators, -1, D_Fake_Output_G.size(0),  device)
 
         if is_degan==1:
             err_G = Losses.G_Loss(D_Fake_Output_G, D_output_real, D_Label_Fake, loss, num_generators)
@@ -345,53 +363,80 @@ for epoch in range(num_epochs):
         if iters%CHECK_INTERVAL==0 or (epoch==num_epochs-1 and i==num_batches-1):
             print("Iters:{}; Epo: {}/{}; Btch: {}/{}; D_Err: {}; G_Err: {}; ".format(iters, epoch, num_epochs, i,num_batches,  err_D.item(), err_G.item()))
             samples_for_test = fixed_noise
-            
+
             with torch.no_grad():
                 fake = generator(fixed_noise).detach().cpu().view(-1)
                 obs_size = fake.size(0)
                 obs_size=obs_size//num_generators
-                
+
                 test_outputs = []#ith element of list stores the output of the ith generator
-                
+
                 for x in range(num_generators):
-                    test_outputs.append(fake[x*num_generators: (x+1)*num_generators])
-                
-            
+                    test_outputs.append(fake[x*obs_size: (x+1)*obs_size])
+
                 #save the ALL output
                 fig = plt.figure()
                 plt.suptitle('All -'+str(iters))
                 plt.hist(fake.numpy(), 300, density=True, range = (0,130))
-                plt.ylim((0,1))
+                plt.ylim((0,0.5))
                 fig.savefig(SAVE_DIR+'/Results/ALL/'+str(iters)+'.png', dpi=fig.dpi)
                 plt.close()
-                
+
+                #colored output for all graph
+                fig = plt.figure()
+                if is_degan==1:
+                    plt.suptitle('DEGAN -'+str(iters))
+                else:
+                    plt.suptitle('MADGAN -'+str(iters))
+                plt.xticks(MEANS)
+                plt.ylim((0,0.4))
+                for x in range(num_generators):
+                    plt.hist(test_outputs[x].numpy(), 300, density=True, range = (0,140), color=colors[x], label=colors[x]+"=G"+str(x))
+                plt.legend()
+                fig.savefig(SAVE_DIR+'/Results/COLOR/'+str(iters)+'.png', dpi=fig.dpi)
+                plt.close()
+
+
                 #save the outputs of the individual generators
                 for x in range(num_generators):
                     fig = plt.figure()
                     plt.suptitle('G'+str(x)+'-'+str(iters))
-                    plt.hist(test_outputs[x].numpy(), 300, density=True, range = (0,130))
-                    plt.ylim((0,1))
+                    plt.hist(test_outputs[x].numpy(), 300, density=True, range = (0,130), color=colors[x])
+                    plt.ylim((0,0.5))
                     fig.savefig(SAVE_DIR+'/Results/G'+str(x)+'/'+str(iters)+'.png', dpi=fig.dpi)
                     plt.close()
 
         iters = iters+1
         DEBUG=False
+    #save model checkpoint after every epoch
+    save_checkpoint(epoch)
 
 
 """
 Save the model and the params to file
 """
-para_dict = {
-    'args':args,
-    'g_state_dict':generator.state_dict(),
-    'optim_g_state_dict':optimG.state_dict(),
-    'd_state_dict':discriminator.state_dict(),
-    'optim_d_state_dict': optimD.state_dict(),
-    'd_losses':D_losses,
-    'g_losses':G_losses,
-}
 
-PTH_SAVE_PATH = SAVE_DIR+'/model_save.pth'
+def save_checkpoint(curr_epoch):
+    para_dict = {
+        'epoch':curr_epoch,
+        'args':args,
+        'train_data':train_data,
+        'g_state_dict':generator.state_dict(),
+        'optim_g_state_dict':optimG.state_dict(),
+        'd_state_dict':discriminator.state_dict(),
+        'optim_d_state_dict': optimD.state_dict(),
+        'd_losses':D_losses,
+        'g_losses':G_losses,
+        'iters':iters,
+        'D_Label':D_Labels,
+        'G_Labels':G_Labels,
+        'D_Label_Fake':D_Label_Fake,
+        'fixed_noise': fixed_noise,
+        'MEANS':MEANS,
+        "DEVS":DEVS,
+    }
 
-utils.save_model(PTH_SAVE_PATH, para_dict)
+    PTH_SAVE_PATH = SAVE_DIR+'/model_save.pth'
+
+    utils.save_model(PTH_SAVE_PATH, para_dict)
 

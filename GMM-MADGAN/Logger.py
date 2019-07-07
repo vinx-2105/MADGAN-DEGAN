@@ -1,8 +1,8 @@
 class Logger:
 
-    def __init__(self, filepath):
+    def __init__(self, filepath, mode='w'):
         self.filepath = filepath
-        with open(self.filepath, 'w') as f:
+        with open(self.filepath, mode) as f:
             f.write("Logger")
     
     def log(self, log_string):
