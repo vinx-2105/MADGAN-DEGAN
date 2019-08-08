@@ -3,6 +3,17 @@ import matplotlib.pyplot as plt
 from torch.distributions import uniform
 import numpy as np
 
+
+
+def custom_log(vector):
+	res = torch.empty(vector.size())
+	for i in range(vector.size(0)):
+		if vector[i]==0:
+			res[i]=0
+		else:
+			res[i] = torch.log(vector[i])
+	return res
+
 def calculate_KL_divergence(real_data, predicted_data, min_obs, max_obs, bin_size=0.1):
     """
         real_data: in case of 1D-GMM this is the dataset
@@ -14,18 +25,31 @@ def calculate_KL_divergence(real_data, predicted_data, min_obs, max_obs, bin_siz
     """
     #first create the tensor of zeros of size (max_obs-min_obs)/bin_size
 
-    num_samples = real_data.size(0).item()
+    num_samples = real_data.size(0)
+    # print(type(num_samples))
+    num_bins = int((max_obs-min_obs)/(bin_size))
 
-    num_bins = float(max_obs-min_obs)/float(bin_size)
+    print(real_data.type(), predicted_data.type())
+
+
 
     real_bins = torch.histc(real_data, num_bins, min_obs, max_obs)/float(num_samples)
 
-    pred_bins = torch.histc(predicted_data, num_bins, min_obs, max_obs)/float(num_samples)
+    pred_bins = torch.histc(predicted_data, num_bins, min_obs, max_obs).float()/float(num_samples)
 
-    real_entropy = torch.mul(real_bins*torch.log(real_bins), float(-1))
-    cross_entropy = torch.mul(real_bins*torch.log(pred_bins), float(-1))
+    print(real_bins, pred_bins)
 
-    return cross_entropy-real_entropy
+
+    # for k in range(1000):
+    # 	print(k, pred_bins[k])
+
+    real_entropy = torch.mul(torch.dot(real_bins,custom_log(real_bins)), float(-1))
+    cross_entropy = torch.mul(torch.dot(real_bins,custom_log(pred_bins)), float(-1))
+    
+    kl = cross_entropy-real_entropy
+    print(cross_entropy, real_entropy)
+    print(kl)
+    return kl
 
 #returns the labels needed while training the discriminator and the generator
 def get_labels(num_generators, gen_address, batch_size,  device):
@@ -56,7 +80,7 @@ def save_model(file_path, para_dict):
     torch.save(para_dict, file_path)
 
 
-def plot_loss_graph(title, loss_list):
+def plot_loss_graph(folder, title, loss_list):
     fig = plt.figure()
     plt.suptitle(title)
     plt.plot(loss_list)

@@ -35,22 +35,21 @@ from gmm_madgan_params import ARGS #import the paramters file
 
 
 
+
+
 #add the command line arguments
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--epochs', help='Number of epochs to run. Default=30', default=30, type =int)
+parser.add_argument('--epochs', help='Number of epochs to run. Default=30', default=50, type =int)
 parser.add_argument('--gpu', help='Use 0 for CPU and 1 for GPU. Default=1', default=1, type =int)
-parser.add_argument('--noise', help='Use 0 for CPU and 1 for GPU. Default=0', default=0, type =int)
-# parser.add_argument('--num_channels', help='Number of channels in the real images in the real image dataset. Default=1', default=1, type=int)
-# parser.add_argument('--image_size', help='The size to which the input images will be resized. Default=32', default=32, type=int)
+parser.add_argument('--noise', help='Use 0 for CPU and 1 for GPU. Default=0', type =int)
 parser.add_argument('--leaky_slope', help='The negative slope of the Leaky ReLU activation used in the architecture. Default=0.2', default=0.2, type=float)
-# parser.add_argument('--dataroot', help='The parent dir of the dir(s) that contain the data. Default=\'./data\'', default='./data', type =str),
 parser.add_argument('--n_z', help='The size of the noise vector to be fed to the generator. Default=64', default=64, type=int)
-parser.add_argument('--batch_size', help='The batch size to be used while training. Default=240', default=240, type=int)
+parser.add_argument('--batch_size', help='The batch size to be used while training. Default=240. Set as multiple of number of generators', default=240, type=int)
 parser.add_argument('--num_generators', help='Number of generators to use. Default=4', default=4, type=int)
 parser.add_argument('--degan', help ='1 if want to use modified loss function otherwise 0. Default=0', default=0, type=int)
 parser.add_argument('--sharing', help='1 if you want to use the shared generator. 0 otherwise. Default=0', default=0, type=int)
-parser.add_argument('--gpu_add', help='Address of the GPU you want to use. Default=0', default=0, type=int)
+parser.add_argument('--gpu_add', help='Address of the GPU you want to use. Default=0',  type=int)
 parser.add_argument('--lrg', help='Learning rate for the generator', default=1e-4, type=float)
 parser.add_argument('--lrd', help='Learning rate for the discriminator', default=1e-4, type=float)
 parser.add_argument('--bt1', help='Beta 1 parameter of the Adam Optimizer. Default=0.5', default=0.5, type=float)
@@ -60,13 +59,27 @@ parser.add_argument('--ndf', help='Noise degradation factor. Default=0.98', defa
 parser.add_argument('--nd', help='Noise standard dev. Default=0.1', default=0.1, type=float)
 parser.add_argument('--nm', help='Noise mean. Default=0.0', default=0.0, type=float)
 parser.add_argument('--chk_interval', help='Check Interval. Default=500', default=500, type=int)
+parser.add_argument('--seed', type=int)
 
+
+####################################################
+args=parser.parse_args()
+print(args)
+
+manualSeed = args.seed
+print("Random Seed: ", manualSeed)
+random.seed(manualSeed)
+torch.manual_seed(manualSeed)
+
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+np.random.seed(manualSeed)
+#####################################################
 
 """
 The params defined by the command line args
 """
-args=parser.parse_args()
-print(args)
 
 ################################
 num_epochs = args.epochs
@@ -96,7 +109,7 @@ CHECK_INTERVAL = args.chk_interval
 
 CWD = os.getcwd()
 
-SUB_DIR = 'GMM-is_degan'+str(is_degan)+'&epc='+str(num_epochs)+'sharing'+str(is_sharing)+'lrd='+str(lrd)+'&lrg='+str(lrg)
+SUB_DIR = 'GMM-is_degan'+str(is_degan)+'&epc='+str(num_epochs)+'sharing'+str(is_sharing)+'lrd='+str(lrd)+'&lrg='+str(lrg)+'-seed='+str(manualSeed)+'&noise='+str(add_noise)
 SAVE_DIR = str(CWD)+'/'+SUB_DIR
 
 
@@ -152,6 +165,9 @@ DEVS = [3,3,2,2,1]
 
 logger.log("MEANS IN DS -"+str(MEANS)+"\n")
 logger.log("DEVS IN DS -"+str(DEVS)+"\n")
+
+
+
 
 
 def get_dataloader(means, devs):
@@ -227,7 +243,6 @@ else:
 
 if not os.path.isdir(SAVE_DIR+'/Results'):
         os.mkdir(SAVE_DIR+'/Results')
-        os.mkdir(SAVE_DIR+'/Results/ALL/')
         os.mkdir(SAVE_DIR+'/Results/COLOR/')
 
 
@@ -272,6 +287,36 @@ D_Labels = torch.cat([D_label_real, D_Label_Fake])
 
 G_Labels = utils.get_labels(num_generators, -1, real_b_size,  device)
 ##################################
+
+
+"""
+Save the model and the params to file
+"""
+
+def save_checkpoint(curr_epoch):
+    para_dict = {
+        'epoch':curr_epoch,
+        'args':args,
+        'train_data':train_data,
+        'g_state_dict':generator.state_dict(),
+        'optim_g_state_dict':optimG.state_dict(),
+        'd_state_dict':discriminator.state_dict(),
+        'optim_d_state_dict': optimD.state_dict(),
+        'd_losses':D_losses,
+        'g_losses':G_losses,
+        'iters':iters,
+        'D_Labels':D_Labels,
+        'G_Labels':G_Labels,
+        'D_Label_Fake':D_Label_Fake,
+        'fixed_noise': fixed_noise,
+        'MEANS':MEANS,
+        "DEVS":DEVS,
+    }
+
+    PTH_SAVE_PATH = SAVE_DIR+'/model_save'+str(curr_epoch)+'.pth'
+
+    utils.save_model(PTH_SAVE_PATH, para_dict)
+
 
 for epoch in range(num_epochs):
     print("Iters: {} Starting Epoch - {}/{}. See log.txt for more details".format(iters, epoch, num_epochs))
@@ -374,14 +419,7 @@ for epoch in range(num_epochs):
                 for x in range(num_generators):
                     test_outputs.append(fake[x*obs_size: (x+1)*obs_size])
 
-                #save the ALL output
-                fig = plt.figure()
-                plt.suptitle('All -'+str(iters))
-                plt.hist(fake.numpy(), 300, density=True, range = (0,130))
-                plt.ylim((0,0.5))
-                fig.savefig(SAVE_DIR+'/Results/ALL/'+str(iters)+'.png', dpi=fig.dpi)
-                plt.close()
-
+ 
                 #colored output for all graph
                 fig = plt.figure()
                 if is_degan==1:
@@ -400,7 +438,10 @@ for epoch in range(num_epochs):
                 #save the outputs of the individual generators
                 for x in range(num_generators):
                     fig = plt.figure()
-                    plt.suptitle('G'+str(x)+'-'+str(iters))
+                    if is_degan:
+                    	plt.suptitle('DEGAN - G'+str(x)+'-'+str(iters))
+                    else:
+                    	plt.suptitle('MADGAN - G'+str(x)+'-'+str(iters))
                     plt.hist(test_outputs[x].numpy(), 300, density=True, range = (0,130), color=colors[x])
                     plt.ylim((0,0.5))
                     fig.savefig(SAVE_DIR+'/Results/G'+str(x)+'/'+str(iters)+'.png', dpi=fig.dpi)
@@ -412,31 +453,4 @@ for epoch in range(num_epochs):
     save_checkpoint(epoch)
 
 
-"""
-Save the model and the params to file
-"""
-
-def save_checkpoint(curr_epoch):
-    para_dict = {
-        'epoch':curr_epoch,
-        'args':args,
-        'train_data':train_data,
-        'g_state_dict':generator.state_dict(),
-        'optim_g_state_dict':optimG.state_dict(),
-        'd_state_dict':discriminator.state_dict(),
-        'optim_d_state_dict': optimD.state_dict(),
-        'd_losses':D_losses,
-        'g_losses':G_losses,
-        'iters':iters,
-        'D_Label':D_Labels,
-        'G_Labels':G_Labels,
-        'D_Label_Fake':D_Label_Fake,
-        'fixed_noise': fixed_noise,
-        'MEANS':MEANS,
-        "DEVS":DEVS,
-    }
-
-    PTH_SAVE_PATH = SAVE_DIR+'/model_save.pth'
-
-    utils.save_model(PTH_SAVE_PATH, para_dict)
 

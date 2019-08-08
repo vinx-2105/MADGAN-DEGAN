@@ -60,6 +60,8 @@ more_epochs = args.more_epochs
 
 logger = Logger(folder+'/log.txt', mode='a')
 
+logger.log("---------------------------------------------------")
+
 device = torch.device("cuda:"+str(args.gpu_add) if (torch.cuda.is_available() and args.gpu > 0) else "cpu")
 print("DEVICE is {}".format(device))
 
@@ -85,7 +87,7 @@ G_Labels = checkpoint['G_Labels']
 D_Label_Fake = checkpoint['D_Label_Fake']
 fixed_noise = checkpoint['fixed_noise']
 MEANS= checkpoint['MEANS']
-
+DEVS=checkpoint['DEVS']
 num_epochs = args.epochs
 
 add_noise = args.noise
@@ -110,31 +112,41 @@ CHECK_INTERVAL = args.chk_interval
 
 
 ###################################
+print(train_data.size())
+dataloader = data_utils.DataLoader(train_data,batch_size=batch_size,shuffle=True)
+print(len(dataloader))
+print(dataloader.batch_size)
+logger.log("Resuming training from checkpoint epoch {} for {} more_epochs".format(curr_epoch, more_epochs))
 
-dataloader = data_utils.DataLoader(train_data,batch_size=args.batch_size,shuffle=True)
-
-logger.log(folder)
-logger.log('Sharing = '+str(args.sharing))
 
 if args.sharing==1:
-    generator = GMMSharedGenerator(args.n_z)
+    generator = GMMSharedGenerator(n_z)
 
 else:
-    generator = GMMUnsharedGenerator(args.n_z)
+    generator = GMMUnsharedGenerator(n_z)
 
-discriminator = GMMDiscriminator(args.num_generators, args.leaky_slope)
+discriminator = GMMDiscriminator(num_generators, leaky_slope)
+
+
+"""
+Save the model and the params to file
+"""
+
+
 
 
 #init the loss function
 loss = nn.CrossEntropyLoss()
 
-#init the optimizers
-optimD = torch.optim.Adam()
-optimG = torch.optim.Adam()
 
 #load the model weights
 generator.load_state_dict(g_state_dict)
 discriminator.load_state_dict(d_state_dict)
+
+#init the optimisers
+optimD = torch.optim.Adam(discriminator.parameters(), lr = lrd, betas = (beta1, beta2))
+optimG = torch.optim.Adam(generator.parameters(), lr = lrg,  betas = (beta1, beta2))
+
 optimD.load_state_dict(optim_d_state_dict)
 optimG.load_state_dict(optim_g_state_dict)
 
@@ -146,6 +158,8 @@ discriminator.train()
 
 
 num_batches = len(dataloader)
+print(dataloader.batch_size)
+print(num_batches)
 
 DEBUG=True
 
@@ -154,26 +168,49 @@ fixed_noise = utils.generate_noise_for_generator(12000, n_z, device)
 colors = ['aqua', 'orange', 'fuchsia', 'yellowgreen']
 
 
-"""
-The labels to be used
-"""
-#################################
-##################################
+def save_checkpoint(curr_epoch):
+    para_dict = {
+        'epoch':curr_epoch,
+        'args':args,
+        'train_data':train_data,
+        'g_state_dict':generator.state_dict(),
+        'optim_g_state_dict':optimG.state_dict(),
+        'd_state_dict':discriminator.state_dict(),
+        'optim_d_state_dict': optimD.state_dict(),
+        'd_losses':D_losses,
+        'g_losses':G_losses,
+        'iters':iters,
+        'D_Label':D_Labels,
+        'G_Labels':G_Labels,
+    }
+
+    PTH_SAVE_PATH = SAVE_DIR+'/model_save.pth'
+
+    utils.save_model(PTH_SAVE_PATH, para_dict)
+
+#begin training
 
 for epoch in range(curr_epoch, curr_epoch+more_epochs ):
-    print("Iters: {} Starting Epoch - {}/{}. See log.txt for more details".format(iters, epoch, num_epochs))
+    print("Iters: {} Starting Epoch - {}/{}. See log.txt for more details".format(iters, epoch, curr_epoch+more_epochs))
     for i, data in enumerate(dataloader, 0):
         ############################################
         #Train the discriminator first
         ############################################
     
         discriminator.zero_grad()
+        
         #1. Train D on real data
-        #fetch natch of real images
+        #fetch batch of real images
+        # print(data[0].size())
+        if DEBUG:
+            print("hello")
+            print(dataloader.batch_size)
+            print(data[0].size())
+            DEBUG=False
         real_images_batch = data[0].to(device)
         real_b_size = real_images_batch.size(0)
 
-        if real_b_size!=args.batch_size:
+        if real_b_size!=batch_size:
             continue
 
         #generate labels for the real batch of data...the (k+1)th element is 1...rest are zero
@@ -303,22 +340,4 @@ for epoch in range(curr_epoch, curr_epoch+more_epochs ):
 Save the model and the params to file
 """
 
-def save_checkpoint(curr_epoch):
-    para_dict = {
-        'epoch':curr_epoch,
-        'args':args,
-        'train_data':train_data,
-        'g_state_dict':generator.state_dict(),
-        'optim_g_state_dict':optimG.state_dict(),
-        'd_state_dict':discriminator.state_dict(),
-        'optim_d_state_dict': optimD.state_dict(),
-        'd_losses':D_losses,
-        'g_losses':G_losses,
-        'iters':iters,
-        'D_Label':D_Labels,
-        'G_Labels':G_Labels,
-    }
 
-    PTH_SAVE_PATH = SAVE_DIR+'/model_save.pth'
-
-    utils.save_model(PTH_SAVE_PATH, para_dict)
