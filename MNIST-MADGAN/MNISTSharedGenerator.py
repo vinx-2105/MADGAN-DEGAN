@@ -32,7 +32,7 @@ class MNISTSharedGenerator(nn.Module):
         self.heads = []
 
         for g in range(self.num_generators):
-            self.heads.append[self.get_head()]
+            self.heads.append(self.get_head())
 
 
     #returns a head sequential layer for use in this class itself

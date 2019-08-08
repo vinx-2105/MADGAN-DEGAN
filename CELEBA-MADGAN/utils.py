@@ -19,7 +19,7 @@ def get_labels(num_generators, gen_address, batch_size,  device):
 
 #returns noise to be used as input for the generator (samples standard normal dist)
 def generate_noise_for_generator(batch_size, n_z, device):
-    return torch.randn((batch_size, n_z), device = device)
+    return torch.randn((batch_size, n_z, 1, 1), device = device)
 
 #saves the model to a .pth file
 def save_model(file_path, para_dict):
