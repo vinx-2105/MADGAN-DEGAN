@@ -37,10 +37,10 @@ The dataset was synthetically prepared and the details are given in the [report]
 
 Here's an animation of the generations of the MADGAN & DEGAN network (with seed=99 and triple sharing) at various iterations -
 ![1D MMG MADGAN Triple Sharing All Output](Results/GMM/triple-madgan/resultCOLOR.gif)
-                        **MADGAN**
+**MADGAN**
 
 ![1D MMG DEGAN Triple Sharing All Output](Results/GMM/triple-degan/resultCOLOR.gif)
-                        **DEGAN**
+**DEGAN**
 
 For more results and outputs of individual generators, see the Results directory.
 
