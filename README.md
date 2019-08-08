@@ -35,12 +35,12 @@ See the results directory for details of the some of the experiments that we ran
 The dataset was synthetically prepared and the details are given in the [report](https://iitrpr.ac.in). Here's a graph of the data -
 ![1D MMG Synthetic Dataset](Results/GMM/dset/dset.png)
 
-Here's an animation of the generations of the MADGAN & DEGAN network (with seed=99 and triple sharing) at various iterations -
+Here's an animation of the generations of the MADGAN & DEGAN network (with seed=99 and triple sharing) at various
+iterations -
+
 ![1D MMG MADGAN Triple Sharing All Output](Results/GMM/triple-madgan/resultCOLOR.gif)
-**MADGAN**
 
 ![1D MMG DEGAN Triple Sharing All Output](Results/GMM/triple-degan/resultCOLOR.gif)
-**DEGAN**
 
 For more results and outputs of individual generators, see the Results directory.
 
