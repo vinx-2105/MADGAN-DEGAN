@@ -42,7 +42,7 @@ iterations -
 
 ![1D MMG DEGAN Triple Sharing All Output](Results/GMM/triple-degan/resultCOLOR.gif)
 
-For more results and outputs of individual generators, see the Results directory.
+For more results and outputs of individual generators, see the [Results](https://github.com/vinx-2105/MADGAN/tree/master/Results/) directory.
 
 #### Report
 For the network  proposed by DEGAN, a summary of the results obtained and an overview of the training technique, please see this [report](https://github.com)
