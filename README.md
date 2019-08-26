@@ -24,9 +24,6 @@ A sample command for running the experiment on the MMG dataset with the degan lo
 
 `python3 gmm-madgan.py --degan=1 --noise=1 --sharing=1 --lrg=1e-05 --lrd=1e-05 --seed=99`
 
-`python3 gmm-madgan.py --degan=1 --noise=1 --sharing=1 --lrg=1e-05 --lrd=1e-05 --seed=99`
-
-
 #### Log and Saving of Results
 The output of the model is stored as images at various iterations of the training process. The output of each experiment is stored in a folder in the same directory as the main .py (gmm-madgan.py in case of MMG) file. The name of the directory contains the paramters with which the experiment was run.
 
