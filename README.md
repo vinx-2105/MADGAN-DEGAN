@@ -22,7 +22,10 @@ Apart from these there were some other minor paramters which can be tweaked. The
 
 A sample command for running the experiment on the MMG dataset with the degan loss function, instance noise added, sharing generator layers on gpu number 2 with generator learning rate and the discriminator learning rates as 1e-04 and seed set as 99 would be -
 
-`python3 gmm-madgan.py --degan=1 --noise=1 --sharing=1 --lrg=1e-04 --lrd=1e-04 --seed=99`
+`python3 gmm-madgan.py --degan=1 --noise=1 --sharing=1 --lrg=1e-05 --lrd=1e-05 --seed=99`
+
+`python3 gmm-madgan.py --degan=1 --noise=1 --sharing=1 --lrg=1e-05 --lrd=1e-05 --seed=99`
+
 
 #### Log and Saving of Results
 The output of the model is stored as images at various iterations of the training process. The output of each experiment is stored in a folder in the same directory as the main .py (gmm-madgan.py in case of MMG) file. The name of the directory contains the paramters with which the experiment was run.
@@ -44,11 +47,25 @@ iterations -
 
 For more results and outputs of individual generators, see the [Results](https://github.com/vinx-2105/MADGAN/tree/master/Results/) directory.
 
+##### MNIST
+The second dataset we experimented on was the standard MNIST dataset. The results obtained in this case were more remarkable compared to the ones obtained in the case of the MMG dataset.
+
+On this dataset, we clearly observed that DEGAN is able to more explicitly enforce diversity.
+<br><br>
+Output of the three generators using the MADGAN approach and sharing the first three layers<br><br>
+![MNIST MADGAN Triple Generator 0 Output](Results/MNIST/mnist_triple_sharing_madgan/25000_G0.png)
+![MNIST MADGAN Triple Generator 1 Output](Results/MNIST/mnist_triple_sharing_madgan/25000_G1.png)
+![MNIST MADGAN Triple Generator 2 Output](Results/MNIST/mnist_triple_sharing_madgan/25000_G2.png)
+<br><br>
+Output of the three generators using the DEGAN approach and sharing the first three layers<br><br>
+![MNIST DEGAN Triple Generator 0 Output](Results/MNIST/mnist_triple_sharing_degan/25000_G0.png)
+![MNIST DEGAN Triple Generator 1 Output](Results/MNIST/mnist_triple_sharing_degan/25000_G1.png)
+![MNIST DEGAN Triple Generator 2 Output](Results/MNIST/mnist_triple_sharing_degan/25000_G2.png)
 #### Report
 For the network  proposed by DEGAN, a summary of the results obtained and an overview of the training technique, please see this [report](https://github.com)
 
 #### Acknowledgements
-We would like to thank [Dr. Narayanan C Krishnan](http://cse.iitrpr.ac.in/ckn/teaching.html) for his constant guidance and the opportunity to work under his supervision. We would also like to thank our seniors [Shivam Mittal](https://github.com/shivam5/SimpleRISC_Plagiarism_Checker) and [Abhishek Chaudhary](https://www.linkedin.com/in/abhishek-chaudhary-556171108/) for conceptualizing the idea and developing the theory for DEGAN.
+We would like to thank [Dr. Narayanan C Krishnan](http://cse.iitrpr.ac.in/ckn/teaching.html) for his constant guidance and the opportunity to work under his supervision. We would also like to thank our seniors [Shivam Mittal](https://github.com/shivam5/) and [Abhishek Chaudhary](https://www.linkedin.com/in/abhishek-chaudhary-556171108/) for conceptualizing the idea and developing the theory for DEGAN.
 
 ### **References**
 * [MADGAN Paper](https://arxiv.org/pdf/1704.02906.pdf)
