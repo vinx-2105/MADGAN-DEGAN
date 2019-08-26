@@ -1,3 +1,9 @@
+"""
+Purpose: Main file for MMG MAGDAN/DEGAN Experiment
+Author: Vineet Madan
+Date: 6 July 2019
+"""
+
 import argparse, sys
 import os
 import random
@@ -211,7 +217,6 @@ Initialize the generator and the discriminator and dataloader
 train_data, dataloader = get_dataloader(MEANS, DEVS)
 
 if is_sharing==0:
-    # generator = MNISTUnsharedGenerator(num_generators, n_z,  batch_size).to(device)
     generator = GMMUnsharedGenerator(n_z).to(device)
 else:
     generator = GMMSharedGenerator(n_z).to(device)
@@ -277,14 +282,16 @@ The labels to be used
 """
 #################################
 real_b_size=batch_size
+#Labels for training discriminator on real data
 D_label_real  = utils.get_labels(num_generators, -1, real_b_size, device)
+#Labels for training discriminator on fake data
 D_Label_Fake =[]
 for g in range(num_generators):
     D_Label_Fake.append(utils.get_labels(num_generators, g, real_b_size//num_generators, device))
 
 D_Label_Fake = torch.cat(D_Label_Fake)
 D_Labels = torch.cat([D_label_real, D_Label_Fake])
-
+#Labels for training the generator
 G_Labels = utils.get_labels(num_generators, -1, real_b_size,  device)
 ##################################
 
@@ -334,9 +341,6 @@ for epoch in range(num_epochs):
         if real_b_size!=batch_size:
             continue
 
-        #generate labels for the real batch of data...the (k+1)th element is 1...rest are zero
-        
-
         #forward pass for the real batch of data and then resize  
         
         gen_input_noise = utils.generate_noise_for_generator(real_b_size//num_generators, n_z, device)
@@ -378,8 +382,8 @@ for epoch in range(num_epochs):
         ########################################
 
         generator.zero_grad()
-
         if add_noise==1:
+            #add noise to the output of the generator before passing it thru the generator(if selected)
             D_Fake_Output_G = discriminator(gen_output+x_noise).view((real_b_size, -1))
         else:
             D_Fake_Output_G = discriminator(gen_output).view((real_b_size, -1))
@@ -395,7 +399,7 @@ for epoch in range(num_epochs):
 
         optimG.step()
 
-
+        #print the current statistics after interval of CHECK_INTERVAL
         if iters%CHECK_INTERVAL==0:
             logger.log("Iters: {}; Epo: {}/{}; Btch: {}/{}; D_Err: {}; G_Err: {};".format(iters, epoch, num_epochs, i,num_batches,  err_D.item(), err_G.item()))
 

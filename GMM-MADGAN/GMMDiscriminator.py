@@ -1,8 +1,12 @@
+"""
+Purpose: The Discriminator Class
+Author: Vineet Madan
+Date: 6 July 2019
+"""
+
+
 import torch
 import torch.nn as nn
-"""
-  The Discriminator model as given in the Table 5 of the  MADGAN paper
-"""
 
 D_channel_factor = 128
 

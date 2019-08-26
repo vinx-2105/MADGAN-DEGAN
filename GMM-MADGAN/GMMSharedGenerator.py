@@ -1,3 +1,11 @@
+"""
+Purpose: Contains the Shared Generator Class. Modify this class if you want to change the shared
+        generator architecture. This object is only formed when no sharing is selected in the run command.
+        The number of shared layers can also be tweaked here by putting the shared layers in the main module.
+Author: Vineet Madan
+Date: 6 July 2019
+"""
+
 import torch
 import torch.nn as nn
 
@@ -27,7 +35,6 @@ class GMMSharedGenerator(nn.Module):
         )
 
         self.headB = nn.Sequential(
-             
             #2. The second layer
             nn.Linear(128,128),
             nn.ELU(inplace=True),

@@ -1,3 +1,9 @@
+"""
+Purpose: Main file for MNIST MAGDAN Experiment
+Author: Vineet Madan
+Date: 6 July 2019
+"""
+
 import argparse, sys
 import os
 import random
@@ -24,7 +30,6 @@ from  MNISTSharedGenerator import MNISTSharedGenerator
 from MNISTUnsharedGenerator import MNISTUnsharedGenerator
 from ThreeSharedGenerator import ThreeSharedGenerator
 from ThreeUnsharedGenerator import ThreeUnsharedGenerator
-import Optim
 import utils
 from Logger import Logger
 import Losses

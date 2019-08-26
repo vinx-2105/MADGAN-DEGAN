@@ -1,3 +1,10 @@
+"""
+Purpose: Contains the Unshared Generator Class. Modify this class if you want to change the unshared
+        generator architecture. This object is only formed when no sharing is selected in the run command.
+Author: Vineet Madan
+Date: 6 July 2019
+"""
+
 import torch
 import torch.nn as nn
 

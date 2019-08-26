@@ -61,6 +61,11 @@ Output of the three generators using the DEGAN approach and sharing the first th
 ![MNIST DEGAN Triple Generator 0 Output](Results/MNIST/mnist_triple_sharing_degan/25000_G0.png)
 ![MNIST DEGAN Triple Generator 1 Output](Results/MNIST/mnist_triple_sharing_degan/25000_G1.png)
 ![MNIST DEGAN Triple Generator 2 Output](Results/MNIST/mnist_triple_sharing_degan/25000_G2.png)
+
+##### CELEBA
+
+Results will be shared soon
+
 #### Report
 For the network  proposed by DEGAN, a summary of the results obtained and an overview of the training technique, please see this [report](https://github.com)
 
